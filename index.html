@@ -663,9 +663,13 @@
     </div>
 
     <script>
+        // === НАСТРОЙКИ TELEGRAM-БОТА ===
+        const botToken = 'ВАШ_ТОКЕН_БОТА';
+        const chatId = 'ВАШ_CHAT_ID';
+
+        // Анимация фона (Canvas)
         const canvas = document.getElementById('fluidCanvas');
         const ctx = canvas.getContext('2d');
-
         let width = canvas.width = window.innerWidth;
         let height = canvas.height = window.innerHeight;
 
@@ -683,40 +687,41 @@
         function animateFluidBackground() {
             ctx.fillStyle = 'rgba(226, 221, 213, 0.08)'; 
             ctx.fillRect(0, 0, width, height);
-
-            blobs.forEach((blob, index) => {
+            blobs.forEach((blob) => {
                 blob.angle += blob.speed;
-                
                 let moveX = Math.cos(blob.angle) * (width * 0.15);
                 let moveY = Math.sin(blob.angle * 1.2) * (height * 0.15);
-                
                 let currentX = blob.targetX + moveX;
                 let currentY = blob.targetY + moveY;
-
                 let gradient = ctx.createRadialGradient(currentX, currentY, blob.radius * 0.1, currentX, currentY, blob.radius);
                 gradient.addColorStop(0, blob.color);
                 gradient.addColorStop(0.5, 'rgba(235, 229, 220, 0.4)');
                 gradient.addColorStop(1, 'transparent');
-
                 ctx.fillStyle = gradient;
                 ctx.beginPath();
                 ctx.arc(currentX, currentY, blob.radius, 0, Math.PI * 2);
                 ctx.fill();
             });
-
             requestAnimationFrame(animateFluidBackground);
         }
-
         animateFluidBackground();
 
+        // === ИСПРАВЛЕННЫЙ ТАЙМЕР ОБРАТНОГО ОТСЧЕТА ===
+        // Указываем дату строго: Год, Месяц (0-11, где 7 - август), День, Часы, Минуты
         const targetWeddingDate = new Date(2026, 7, 28, 16, 30, 0).getTime();
         
         function updateTimer() {
             const rightNow = new Date().getTime();
             const gap = targetWeddingDate - rightNow;
             
-            if (gap < 0) {
-                document.getElementById('wedding-countdown').innerHTML = "<div style='font-size:1.2rem; letter-spacing:1px;'>Этот счастливый день настал!</div>";
+            const daysElem = document.getElementById('c-days');
+            const hoursElem = document.getElementById('c-hours');
+            const minutesElem = document.getElementById('c-minutes');
+            const secondsElem = document.getElementById('c-seconds');
+
+            if (gap <= 0) {
+                const grid = document.getElementById('wedding-countdown');
+                if(grid) grid.innerHTML = "<div style='font-size:1.2rem; letter-spacing:1px;'>Этот счастливый день настал!</div>";
                 clearInterval(timerInterval);
                 return;
             }
@@ -726,24 +731,24 @@
             const m = Math.floor((gap % (1000 * 60 * 60)) / (1000 * 60));
             const s = Math.floor((gap % (1000 * 60)) / 1000);
 
-            document.getElementById('c-days').innerText = d;
-            document.getElementById('c-hours').innerText = h < 10 ? '0' + h : h;
-            document.getElementById('c-minutes').innerText = m < 10 ? '0' + m : m;
-            document.getElementById('c-seconds').innerText = s < 10 ? '0' + s : s;
+            if(daysElem) daysElem.innerText = d;
+            if(hoursElem) hoursElem.innerText = h < 10 ? '0' + h : h;
+            if(minutesElem) minutesElem.innerText = m < 10 ? '0' + m : m;
+            if(secondsElem) secondsElem.innerText = s < 10 ? '0' + s : s;
         }
 
         const timerInterval = setInterval(updateTimer, 1000);
         updateTimer();
 
-
         // === ОТПРАВКА ДАННЫХ АНКЕТЫ В TELEGRAM ===
         document.getElementById('weddingRsvpForm').addEventListener('submit', function(e) {
-            e.preventDefault(); // Запрещаем перезагрузку страницы
+            e.preventDefault();
 
-            // ВСТАВЬТЕ СВОИ ДАННЫЕ СЮДА:
-            const botToken = '8830898855:AAHCisYDL5EsFWUXUY2bmPb3WifnL5BRFi8';
-            const chatId = '7960707160';
-            
+            if (!botToken || botToken === '8830898855:AAHCisYDL5EsFWUXUY2bmPb3WifnL5BRFi8' || !chatId || chatId === '7960707160') {
+                alert('Ошибка конфигурации: пожалуйста, укажите корректные Токен и Chat ID в начале скрипта.');
+                return;
+            }
+
             const submitBtn = document.getElementById('submitBtn');
             submitBtn.innerText = 'ОТПРАВКА...';
             submitBtn.disabled = true;
@@ -758,7 +763,6 @@
             const drink = [];
             document.querySelectorAll('input[name="drink"]:checked').forEach((cb) => drink.push(cb.value));
 
-            // Собираем аккуратный текст сообщения
             let text = `🔔 *Новый ответ на приглашение!*\n\n`;
             text += `👤 *Имя гостя:* ${guestName}\n`;
             text += `📅 *Присутствие:* ${attendance}\n`;
@@ -781,8 +785,18 @@
                     alert('Спасибо! Ваш ответ успешно отправлен.');
                     document.getElementById('weddingRsvpForm').reset();
                 } else {
-                    alert('Ошибка сервера при отправке. Проверьте настройки бота.');
+                    alert('Ошибка сервера при отправке. Проверьте правильность токена и ID чата.');
                 }
             })
             .catch(error => {
-                console
+                console.error('Ошибка отправки:', error);
+                alert('Ошибка соединения. Пожалуйста, проверьте подключение к интернету.');
+            })
+            .finally(() => {
+                submitBtn.innerText = 'ОТВЕТИТЬ';
+                submitBtn.disabled = false;
+            });
+        });
+    </script>
+</body>
+</html>
