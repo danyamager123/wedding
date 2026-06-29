@@ -664,8 +664,8 @@
 
     <script>
         // === НАСТРОЙКИ TELEGRAM-БОТА ===
-        const botToken = 'ВАШ_ТОКЕН_БОТА';
-        const chatId = 'ВАШ_CHAT_ID';
+        const botToken = '8830898855:AAGYwGP6k_0A7vzrpCLcBE8uRdz2IhTWrmA';
+        const chatId = '-5282517245';
 
         // Анимация фона (Canvas)
         const canvas = document.getElementById('fluidCanvas');
@@ -706,8 +706,7 @@
         }
         animateFluidBackground();
 
-        // === ИСПРАВЛЕННЫЙ ТАЙМЕР ОБРАТНОГО ОТСЧЕТА ===
-        // Указываем дату строго: Год, Месяц (0-11, где 7 - август), День, Часы, Минуты
+        // === ТАЙМЕР ОБРАТНОГО ОТСЧЕТА ===
         const targetWeddingDate = new Date(2026, 7, 28, 16, 30, 0).getTime();
         
         function updateTimer() {
@@ -740,63 +739,62 @@
         const timerInterval = setInterval(updateTimer, 1000);
         updateTimer();
 
-        // === ОТПРАВКА ДАННЫХ АНКЕТЫ В TELEGRAM ===
-        document.getElementById('weddingRsvpForm').addEventListener('submit', function(e) {
-            e.preventDefault();
+        // === ОБРАБОТЧИК АНКЕТЫ И ОТПРАВКА ===
+document.getElementById('weddingRsvpForm').addEventListener('submit', function(e) {
+    e.preventDefault();
 
-            if (!botToken || botToken === '8830898855:AAHCisYDL5EsFWUXUY2bmPb3WifnL5BRFi8' || !chatId || chatId === '7960707160') {
-                alert('Ошибка конфигурации: пожалуйста, укажите корректные Токен и Chat ID в начале скрипта.');
-                return;
-            }
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.innerText = 'ОТПРАВКА...';
+    submitBtn.disabled = true;
 
-            const submitBtn = document.getElementById('submitBtn');
-            submitBtn.innerText = 'ОТПРАВКА...';
-            submitBtn.disabled = true;
+    const formData = new FormData(this);
+    const guestName = formData.get('guest_name');
+    const attendance = formData.get('attendance');
+    
+    const food = [];
+    document.querySelectorAll('input[name="food"]:checked').forEach((cb) => food.push(cb.value));
+    
+    const drink = [];
+    document.querySelectorAll('input[name="drink"]:checked').forEach((cb) => drink.push(cb.value));
 
-            const formData = new FormData(this);
-            const guestName = formData.get('guest_name');
-            const attendance = formData.get('attendance');
-            
-            const food = [];
-            document.querySelectorAll('input[name="food"]:checked').forEach((cb) => food.push(cb.value));
-            
-            const drink = [];
-            document.querySelectorAll('input[name="drink"]:checked').forEach((cb) => drink.push(cb.value));
+    // Формируем текст
+    let text = `✉️ <b>Новый ответ на приглашение!</b>\n\n`;
+    text += `👤 <b>Имя гостя(ей):</b> ${guestName}\n`;
+    text += `❓ <b>Присутствие:</b> ${attendance}\n`;
+    text += `🍲 <b>Горячее:</b> ${food.length > 0 ? food.join(', ') : 'Не выбрано'}\n`;
+    text += `🍷 <b>Алкоголь:</b> ${drink.length > 0 ? drink.join(', ') : 'Не выбрано'}`;
 
-            let text = `🔔 *Новый ответ на приглашение!*\n\n`;
-            text += `👤 *Имя гостя:* ${guestName}\n`;
-            text += `📅 *Присутствие:* ${attendance}\n`;
-            text += `🥩 *Горячее:* ${food.length > 0 ? food.join(', ') : 'Не выбрано'}\n`;
-            text += `🍷 *Алкоголь:* ${drink.length > 0 ? drink.join(', ') : 'Не выбрано'}`;
+    // Передаем параметры через URLSearchParams — это гарантирует доставку без CORS-ошибок
+    const params = new URLSearchParams({
+        chat_id: chatId,
+        text: text,
+        parse_mode: 'HTML'
+    });
 
-            const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
-            
-            fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    chat_id: chatId,
-                    text: text,
-                    parse_mode: 'Markdown'
-                })
-            })
-            .then(response => {
-                if (response.ok) {
-                    alert('Спасибо! Ваш ответ успешно отправлен.');
-                    document.getElementById('weddingRsvpForm').reset();
-                } else {
-                    alert('Ошибка сервера при отправке. Проверьте правильность токена и ID чата.');
-                }
-            })
-            .catch(error => {
-                console.error('Ошибка отправки:', error);
-                alert('Ошибка соединения. Пожалуйста, проверьте подключение к интернету.');
-            })
-            .finally(() => {
-                submitBtn.innerText = 'ОТВЕТИТЬ';
-                submitBtn.disabled = false;
+    const url = `https://api.telegram.org/bot${botToken}/sendMessage?${params.toString()}`;
+    
+    fetch(url, { method: 'POST' })
+    .then(response => {
+        if (response.ok) {
+            alert('Спасибо! Ваш ответ успешно отправлен.');
+            document.getElementById('weddingRsvpForm').reset();
+        } else {
+            // Если Telegram вернул ошибку (например, неверный токен или chat_id)
+            return response.json().then(err => {
+                console.error('Ошибка Telegram API:', err);
+                alert(`Ошибка сервера Telegram: ${err.description}`);
             });
-        });
+        }
+    })
+    .catch(error => {
+        console.error('Ошибка сети:', error);
+        alert('Произошла ошибка отправки. Проверьте подключение к интернету или VPN.');
+    })
+    .finally(() => {
+        submitBtn.innerText = 'ОТВЕТИТЬ';
+        submitBtn.disabled = false;
+    });
+});
     </script>
 </body>
 </html>
